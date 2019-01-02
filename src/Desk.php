@@ -1,9 +1,13 @@
 <?php
 
-class Desk {
+class Desk
+{
     private $figures = [];
 
-    public function __construct() {
+    private $moves = 0;
+
+    public function __construct()
+    {
         $this->figures['a'][1] = new Rook(false);
         $this->figures['b'][1] = new Knight(false);
         $this->figures['c'][1] = new Bishop(false);
@@ -41,23 +45,58 @@ class Desk {
         $this->figures['h'][8] = new Rook(true);
     }
 
-    public function move($move) {
+    public function move($move)
+    {
         if (!preg_match('/^([a-h])(\d)-([a-h])(\d)$/', $move, $match)) {
-            throw new \Exception("Incorrect move");
+            throw new \RuntimeException('Not valid parameters');
         }
 
-        $xFrom = $match[1];
-        $yFrom = $match[2];
-        $xTo   = $match[3];
-        $yTo   = $match[4];
+        list($xFrom, $yFrom, $xTo, $yTo) = [$match[1], $match[2], $match[3], $match[4]];
 
-        if (isset($this->figures[$xFrom][$yFrom])) {
-            $this->figures[$xTo][$yTo] = $this->figures[$xFrom][$yFrom];
+        $figure = $this->getFigure($xFrom, $yFrom);
+
+        if (!$figure || !$this->canMove($figure, $xFrom, $xTo, $yFrom, $yTo)) {
+            throw new \RuntimeException('Cannot move');
         }
+
+        $figure->incrementMoves();
+
+        $this->figures[$xTo][$yTo] = $figure;
         unset($this->figures[$xFrom][$yFrom]);
+
+        $this->moves++;
     }
 
-    public function dump() {
+    /**
+     * @param $xVar
+     * @param $yVar
+     *
+     * @return Figure
+     */
+    public function getFigure($xVar, $yVar)
+    {
+        if (is_int($xVar)) {
+            $xVar = $this->toString($xVar);
+        }
+
+        return isset($this->figures[$xVar][$yVar]) ? $this->figures[$xVar][$yVar] : null;
+    }
+
+    public function canMove(Figure $figure, $xFrom, $xTo, $yFrom, $yTo)
+    {
+        if ($this->isBlackTurn() !== $figure->getIsBlack()) {
+            return false;
+        }
+
+        if (!$figure->canMove($this, $this->toDecimal($xFrom), $this->toDecimal($xTo), $yFrom, $yTo)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function dump()
+    {
         for ($y = 8; $y >= 1; $y--) {
             echo "$y ";
             for ($x = 'a'; $x <= 'h'; $x++) {
@@ -70,5 +109,23 @@ class Desk {
             echo "\n";
         }
         echo "  abcdefgh\n";
+    }
+
+    private function toDecimal($xChar)
+    {
+        return ord($xChar) - 97;
+    }
+
+    private function toString($xChar)
+    {
+        return chr($xChar + 97);
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isBlackTurn()
+    {
+        return 1 === $this->moves % 2;
     }
 }
