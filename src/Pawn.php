@@ -7,28 +7,52 @@ class Pawn extends Figure
         return $this->isBlack ? '♟' : '♙';
     }
 
-    public function canMove(Desk $desk, $xFrom, $xTo, $yFrom, $yTo)
+    public function getIntermediates($xFrom, $xTo, $yFrom, $yTo): array
+    {
+        if (abs($yFrom - $yTo) > 1) {
+            if ($this->getIsBlack()) {
+                $yTmp = $yTo + 1;
+            } else {
+                $yTmp = $yTo - 1;
+            }
+
+            return [[$xTo, $yTmp]];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param $xFrom
+     * @param $xTo
+     * @param $yFrom
+     * @param $yTo
+     *
+     * @return bool
+     */
+    public function mustCapture($xFrom, $xTo, $yFrom, $yTo): bool
+    {
+        if ($xFrom !== $xTo) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param       $xFrom
+     * @param       $xTo
+     * @param       $yFrom
+     * @param       $yTo
+     * @param array $intermediates
+     *
+     * @return bool
+     */
+    public function canMove($xFrom, $xTo, $yFrom, $yTo, array $intermediates): bool
     {
         $absY = $yTo - $yFrom;
         $absX = abs($xTo - $xFrom);
 
-        if (!$this->isValidMove($absX, $absY)) {
-            return false;
-        }
-
-        if (1 === $absX && 1 === $absY) {
-            return $this->canCapture($desk, $xTo, $yTo);
-        }
-
-        if (2 === $absY && 0 === $this->getMoves()) {
-            return $this->canMoveDouble($desk, $xTo, $yTo);
-        }
-
-        return true;
-    }
-
-    private function isValidMove($absX, $absY)
-    {
         if ($absY > 0 && $this->getIsBlack() === true) {
             return false;
         }
@@ -36,6 +60,8 @@ class Pawn extends Figure
         if ($absY < 0 && $this->getIsBlack() === false) {
             return false;
         }
+
+        $absY = abs($absY);
 
         if ($absY > 2) {
             return false;
@@ -49,48 +75,28 @@ class Pawn extends Figure
             return false;
         }
 
-        return true;
-    }
-
-    /**
-     * @param Desk $desk
-     * @param      $xTo
-     * @param      $yTo
-     *
-     * @return bool
-     */
-    private function canCapture(Desk $desk, $xTo, $yTo)
-    {
-        $destination = $desk->getFigure($xTo, $yTo);
-        if (!$destination) {
+        if (2 === $absY && count($intermediates)) {
             return false;
         }
 
-        if ($destination->getIsBlack() === $this->getIsBlack()) {
-            return false;
+        if (2 === $absY && 0 === $this->getMoves()) {
+            return $this->canMoveDouble($intermediates);
         }
 
         return true;
     }
 
     /**
-     * @param Desk $desk
-     * @param      $xTo
-     * @param      $yTo
+     * @param array $cells
      *
      * @return bool
      */
-    private function canMoveDouble(Desk $desk, $xTo, $yTo)
+    private function canMoveDouble(array $cells)
     {
-        if ($this->getIsBlack()) {
-            $tmp = $yTo + 1;
-        } else {
-            $tmp = $yTo - 1;
-        }
-
-        $middle = $desk->getFigure($xTo, $tmp);
-        if ($middle) {
-            return false;
+        foreach ($cells as $cell) {
+            if ($cell) {
+                return false;
+            }
         }
 
         return true;

@@ -55,9 +55,11 @@ class Desk
 
         $figure = $this->getFigure($xFrom, $yFrom);
 
-        if (!$figure || !$this->canMove($figure, $xFrom, $xTo, $yFrom, $yTo)) {
+        if (!$figure) {
             throw new \RuntimeException('Cannot move');
         }
+
+        $this->canMove($figure, $xFrom, $xTo, $yFrom, $yTo);
 
         $figure->incrementMoves();
 
@@ -73,26 +75,36 @@ class Desk
      *
      * @return Figure
      */
-    public function getFigure($xVar, $yVar)
+    public function getFigure($xVar, $yVar): \Figure
     {
         if (is_int($xVar)) {
-            $xVar = $this->toString($xVar);
+            $xVar = $this->toChar($xVar);
         }
 
-        return isset($this->figures[$xVar][$yVar]) ? $this->figures[$xVar][$yVar] : null;
+        return $this->figures[$xVar][$yVar] ?? null;
     }
 
     public function canMove(Figure $figure, $xFrom, $xTo, $yFrom, $yTo)
     {
         if ($this->isBlackTurn() !== $figure->getIsBlack()) {
-            return false;
+            throw new RuntimeException('Wrong turn');
         }
 
-        if (!$figure->canMove($this, $this->toDecimal($xFrom), $this->toDecimal($xTo), $yFrom, $yTo)) {
-            return false;
+        $middles = $figure->getIntermediates($xFrom, $xTo, $yFrom, $yTo);
+        $intermediates = $this->getIntermediates($middles);
+
+        if (!$figure->canMove($this->toDecimal($xFrom), $this->toDecimal($xTo), $yFrom, $yTo, $intermediates)) {
+            throw new RuntimeException('Figure cannot move');
         }
 
-        return true;
+        if ($figure->mustCapture($xFrom, $xTo, $yFrom, $yTo)) {
+            $this->capture($figure, $xTo, $yTo);
+            return;
+        }
+
+        if (isset($this->figures[$xTo][$yTo])) {
+            throw new RuntimeException('Figure cannot move on this cell');
+        }
     }
 
     public function dump()
@@ -111,12 +123,12 @@ class Desk
         echo "  abcdefgh\n";
     }
 
-    private function toDecimal($xChar)
+    private function toDecimal($xChar): int
     {
         return ord($xChar) - 97;
     }
 
-    private function toString($xChar)
+    private function toChar($xChar): string
     {
         return chr($xChar + 97);
     }
@@ -127,5 +139,44 @@ class Desk
     protected function isBlackTurn()
     {
         return 1 === $this->moves % 2;
+    }
+
+    /**
+     * @param Figure $figure
+     * @param        $xTo
+     * @param        $yTo
+     *
+     * @return void
+     */
+    private function capture(Figure $figure, $xTo, $yTo)
+    {
+        $destination = $this->getFigure($xTo, $yTo);
+
+        if (!$destination) {
+            throw new RuntimeException('Nothing there');
+        }
+
+        if ($destination->getIsBlack() === $figure->getIsBlack()) {
+            throw new RuntimeException('Cannot capture same color');
+        }
+    }
+
+    /**
+     * @param array $middles
+     * @param array $intermediates
+     *
+     * @return array
+     */
+    private function getIntermediates(array $middles): array
+    {
+        $intermediates = [];
+
+        foreach ($middles as $middle) {
+            if (isset($this->figures[$middle[0]][$middle[1]])) {
+                $intermediates[] = $this->getFigure($middle[0], $middle[1]);
+            }
+        }
+
+        return $intermediates;
     }
 }

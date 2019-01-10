@@ -17,17 +17,43 @@ class Figure
     }
 
     /**
-     * @param Desk $desk
-     * @param      $xFrom
-     * @param      $xTo
-     * @param      $yFrom
-     * @param      $yTo
+     * @param $xFrom
+     * @param $xTo
+     * @param $yFrom
+     * @param $yTo
+     *
+     * @return array
+     */
+    public function getIntermediates($xFrom, $xTo, $yFrom, $yTo): array
+    {
+        throw new \RuntimeException('Not implemented');
+    }
+
+    /**
+     * @param $xFrom
+     * @param $xTo
+     * @param $yFrom
+     * @param $yTo
+     *
+     * @return bool
+     */
+    public function mustCapture($xFrom, $xTo, $yFrom, $yTo): bool
+    {
+        return false;
+    }
+
+    /**
+     * @param       $xFrom
+     * @param       $xTo
+     * @param       $yFrom
+     * @param       $yTo
+     *
+     * @param array $intermediates
      *
      * @return bool
      *
-     * @throws Exception
      */
-    public function canMove(Desk $desk, $xFrom, $xTo, $yFrom, $yTo)
+    public function canMove($xFrom, $xTo, $yFrom, $yTo, array $intermediates): bool
     {
         throw new \RuntimeException('Not implemented');
     }
